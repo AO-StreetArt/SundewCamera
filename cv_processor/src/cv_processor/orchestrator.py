@@ -112,13 +112,12 @@ class CvOrchestrator:
         return _callback
 
     def _serialize_detections(self, bindings_list: Any) -> list[Any]:
-        # Minimal parsing: pass through raw bindings as detections.
-        # TO-DO: implement proper parsing based on model output format.
+        """Convert inference bindings to JSON-serializable detections."""
         if bindings_list is None:
             return []
         if isinstance(bindings_list, list):
-            return bindings_list
-        return [bindings_list]
+            return [self._json_safe(item) for item in bindings_list]
+        return [self._json_safe(bindings_list)]
 
     def _emit_message(self, message: dict[str, Any]) -> None:
         if self._output_console:
@@ -139,3 +138,14 @@ class CvOrchestrator:
             return str(value)
         except Exception:
             return repr(value)
+
+    @classmethod
+    def _json_safe(cls, value: Any) -> Any:
+        """Convert unsupported types to strings so JSON serialization succeeds."""
+        if value is None or isinstance(value, (bool, int, float, str)):
+            return value
+        if isinstance(value, dict):
+            return {cls._safe_str(k): cls._json_safe(v) for k, v in value.items()}
+        if isinstance(value, (list, tuple, set)):
+            return [cls._json_safe(item) for item in value]
+        return cls._safe_str(value)

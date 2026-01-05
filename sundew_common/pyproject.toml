@@ -14,7 +14,9 @@ classifiers = [
   "Programming Language :: Python :: 3",
   "License :: OSI Approved :: MIT License",
 ]
-dependencies = []
+dependencies = [
+  "pyzmq",
+]
 
 [tool.setuptools]
 package-dir = {"" = "src"}

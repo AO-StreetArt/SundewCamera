@@ -14,7 +14,11 @@ classifiers = [
   "Programming Language :: Python :: 3",
   "License :: OSI Approved :: MIT License",
 ]
-dependencies = []
+dependencies = [
+  "hailo-apps @ git+https://github.com/hailo-ai/hailo-apps.git",
+  "opencv-python",
+  "sundew-common",
+]
 
 [project.scripts]
 cv-processor = "cv_processor.cli:main"

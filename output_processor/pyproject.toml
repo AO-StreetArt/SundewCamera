@@ -14,7 +14,9 @@ classifiers = [
   "Programming Language :: Python :: 3",
   "License :: OSI Approved :: MIT License",
 ]
-dependencies = []
+dependencies = [
+  "sundew-common",
+]
 
 [project.scripts]
 output-processor = "output_processor.cli:main"

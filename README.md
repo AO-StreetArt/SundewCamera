@@ -20,7 +20,7 @@ The prototype is two Python services that communicate over local ZeroMQ IPC. The
 From the repo root:
 
 ```bash
-python3 -m venv .venv
+python3 -m venv .venv --system-site-packages
 source .venv/bin/activate
 python -m pip install -U pip
 

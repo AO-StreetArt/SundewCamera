@@ -8,6 +8,8 @@ from queue import Empty, Queue
 from time import time
 from typing import Any, Optional
 
+import cv2
+
 from sundew_common.ipc_client import ZmqIpcClient
 
 from .camera_client import CameraClient
@@ -29,6 +31,8 @@ class CvOrchestrator:
         queue_maxsize: int = 4,
         output_console: bool = False,
         frame_stride: int = 1,
+        resize_width: int = 640,
+        resize_height: int = 640,
         frame_queue: Optional[Queue] = None,
         camera_client: Optional[CameraClient] = None,
         infer_client: Optional[HailoInferClient] = None,
@@ -52,6 +56,10 @@ class CvOrchestrator:
         if frame_stride < 1:
             raise ValueError("frame_stride must be >= 1")
         self._frame_stride = frame_stride
+        if resize_width < 1 or resize_height < 1:
+            raise ValueError("resize_width/resize_height must be >= 1")
+        self._resize_width = resize_width
+        self._resize_height = resize_height
         self._frame_id = 0
 
     def run(self, *, max_frames: Optional[int] = None) -> None:
@@ -70,7 +78,8 @@ class CvOrchestrator:
                     continue
                 callback = self._build_callback(self._frame_id)
                 # TO-DO: call inference on a different thread to improve throughput.
-                self._infer_client.run([frame], callback)
+                resized = self._resize_frame(frame)
+                self._infer_client.run([resized], callback)
                 self._frame_id += 1
                 processed += 1
                 if max_frames is not None and processed >= max_frames:
@@ -118,6 +127,11 @@ class CvOrchestrator:
         if self._ipc_client is None:
             raise RuntimeError("IPC client unavailable for message emit")
         self._ipc_client.send_json(message)
+
+    def _resize_frame(self, frame: Any) -> Any:
+        if frame is None or not hasattr(frame, "shape"):
+            return frame
+        return cv2.resize(frame, (self._resize_width, self._resize_height))
 
     @staticmethod
     def _safe_str(value: Any) -> str:

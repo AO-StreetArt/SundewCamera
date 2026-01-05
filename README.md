@@ -51,6 +51,8 @@ CV processor (`cv-processor`):
 - `--ipc-endpoint`: IPC endpoint when publishing (ignored with `--output-console`).
 - `--batch-size`: Hailo inference batch size (default `1`).
 - `--frame-stride`: process 1 in every N frames (default `1`).
+- `--resize-width`: resize frames to this width before inference (default `640`).
+- `--resize-height`: resize frames to this height before inference (default `640`).
 - `--camera-index`: OpenCV camera index (default `0`).
 - `--queue-maxsize`: internal frame queue size (default `4`).
 - `--max-frames`: stop after N processed frames (useful for smoke tests).

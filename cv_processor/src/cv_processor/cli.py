@@ -26,6 +26,18 @@ def _build_parser() -> argparse.ArgumentParser:
         default=1,
         help="Only process 1 in every N frames.",
     )
+    parser.add_argument(
+        "--resize-width",
+        type=int,
+        default=640,
+        help="Resize frames to this width before inference.",
+    )
+    parser.add_argument(
+        "--resize-height",
+        type=int,
+        default=640,
+        help="Resize frames to this height before inference.",
+    )
     parser.add_argument("--camera-index", type=int, default=0)
     parser.add_argument("--queue-maxsize", type=int, default=4)
     parser.add_argument("--max-frames", type=int, default=None)
@@ -54,6 +66,8 @@ def main(
         queue_maxsize=args.queue_maxsize,
         output_console=args.output_console,
         frame_stride=args.frame_stride,
+        resize_width=args.resize_width,
+        resize_height=args.resize_height,
     )
     logging.getLogger(__name__).info(
         "Starting CV orchestrator (network=%s, ipc=%s, output_console=%s)",

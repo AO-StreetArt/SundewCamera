@@ -6,11 +6,12 @@ import argparse
 import logging
 import threading
 from dataclasses import dataclass
+from pathlib import Path
 from time import monotonic, time
 from typing import Any, Callable, Iterable, Optional
 
 import cv2
-from flask import Flask, jsonify
+from flask import Flask, jsonify, request
 
 from cv_processor.detection_serializer import serialize_detections
 from cv_processor.hailo_infer_client import HailoInferClient
@@ -117,12 +118,55 @@ class CameraInferenceService:
         self._infer_client.close()
 
 
-def create_app(service: CameraInferenceService, *, model_name: str) -> Flask:
+def create_app(
+    service: CameraInferenceService,
+    *,
+    model_name: str,
+    node_name: str = "pi-vision-01",
+    service_name: str = "vision_sundew",
+) -> Flask:
     """Create the one-endpoint Flask application."""
     app = Flask(__name__, static_folder=None)
 
+    @app.get("/health")
+    def health():
+        return jsonify(
+            {
+                "status": "ok",
+                "node": node_name,
+                "service": service_name,
+                "backend": {"name": "sundew-hailo", "status": "ok"},
+                "capabilities": {
+                    "detect_objects": {
+                        "status": "ok",
+                        "default_model": model_name,
+                        "max_concurrency": 1,
+                    }
+                },
+            }
+        )
+
     @app.post("/detect")
     def detect():
+        payload = request.get_json(silent=True) or {}
+        if not isinstance(payload, dict):
+            return jsonify({"error": "request body must be a JSON object"}), 400
+        options = payload.get("options") or {}
+        if not isinstance(options, dict):
+            return jsonify({"error": "options must be a JSON object"}), 400
+        confidence_threshold = options.get("confidence_threshold", 0.0)
+        max_detections = options.get("max_detections")
+        if (
+            not isinstance(confidence_threshold, (int, float))
+            or isinstance(confidence_threshold, bool)
+            or not 0 <= confidence_threshold <= 1
+        ):
+            return jsonify({"error": "confidence_threshold must be between 0 and 1"}), 400
+        if max_detections is not None and (
+            not isinstance(max_detections, int) or isinstance(max_detections, bool) or max_detections < 1
+        ):
+            return jsonify({"error": "max_detections must be a positive integer"}), 400
+
         try:
             result = service.detect()
         except CameraCaptureError as exc:
@@ -133,13 +177,21 @@ def create_app(service: CameraInferenceService, *, model_name: str) -> Flask:
             logger.exception("Detection request failed")
             return jsonify({"error": str(exc)}), 500
 
+        detections = [
+            item
+            for item in result.detections
+            if float(item.get("confidence", 1.0)) >= confidence_threshold
+        ]
+        if max_detections is not None:
+            detections = detections[:max_detections]
+
         return jsonify(
             {
                 "schema_version": "1.0",
                 "timestamp_ms": int(time() * 1000),
                 "source": "camera-0",
                 "model": model_name,
-                "detections": result.detections,
+                "detections": detections,
                 "processing": {
                     "capture_ms": result.capture_ms,
                     "inference_ms": result.inference_ms,
@@ -155,6 +207,9 @@ def _build_parser() -> argparse.ArgumentParser:
     parser.add_argument("--network", required=True, help="Path to the Hailo HEF")
     parser.add_argument("--camera-index", type=int, default=0)
     parser.add_argument("--timeout-seconds", type=float, default=10.0)
+    parser.add_argument("--model-name", help="Stable model name returned by the API")
+    parser.add_argument("--node-name", default="pi-vision-01")
+    parser.add_argument("--service-name", default="vision_sundew")
     parser.add_argument("--host", default="127.0.0.1")
     parser.add_argument("--port", type=int, default=8080)
     return parser
@@ -171,7 +226,12 @@ def main(argv: Optional[Iterable[str]] = None) -> int:
         camera_index=args.camera_index,
         timeout_seconds=args.timeout_seconds,
     )
-    app = create_app(service, model_name=args.network)
+    app = create_app(
+        service,
+        model_name=args.model_name or Path(args.network).stem,
+        node_name=args.node_name,
+        service_name=args.service_name,
+    )
     try:
         app.run(host=args.host, port=args.port, threaded=True)
     finally:

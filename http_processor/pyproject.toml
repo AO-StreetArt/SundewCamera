@@ -4,7 +4,7 @@ build-backend = "setuptools.build_meta"
 
 [project]
 name = "sundew-http-processor"
-version = "0.1.0"
+version = "0.1.1"
 description = "HTTP camera inference service for Sundew"
 readme = "README.md"
 requires-python = ">=3.10"

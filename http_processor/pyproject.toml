@@ -3,26 +3,20 @@ requires = ["setuptools>=69", "wheel"]
 build-backend = "setuptools.build_meta"
 
 [project]
-name = "cv-processor"
+name = "sundew-http-processor"
 version = "0.1.0"
-description = "Sundew CV Processor application"
+description = "HTTP camera inference service for Sundew"
 readme = "README.md"
 requires-python = ">=3.10"
 license = { text = "MIT" }
-authors = [{ name = "Sundew" }]
-classifiers = [
-  "Programming Language :: Python :: 3",
-  "License :: OSI Approved :: MIT License",
-]
 dependencies = [
-  "hailo-apps @ git+https://github.com/hailo-ai/hailo-apps.git",
-  "numpy",
+  "cv-processor",
+  "flask",
   "opencv-python",
-  "sundew-common",
 ]
 
 [project.scripts]
-cv-processor = "cv_processor.cli:main"
+sundew-http-server = "http_processor.app:main"
 
 [tool.setuptools]
 package-dir = {"" = "src"}

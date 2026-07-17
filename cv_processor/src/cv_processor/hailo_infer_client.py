@@ -38,3 +38,4 @@ class HailoInferClient:
     def close(self) -> None:
         self._infer.close()
         logger.info("Closed HailoInfer client")
+        

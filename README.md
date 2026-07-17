@@ -27,6 +27,7 @@ python -m pip install -U pip
 pip install -e ./sundew_common
 pip install -e ./output_processor
 pip install -e ./cv_processor
+pip install -e ./http_processor
 ```
 
 ### Run
@@ -41,6 +42,20 @@ Then run the CV processor with your `.hef` model:
 
 ```bash
 cv-processor --network /path/to/model.hef --ipc-endpoint ipc:///tmp/sundew-cv.ipc
+```
+
+### HTTP camera inference
+
+The separate HTTP processor captures one frame and runs inference for each
+`POST /detect` request:
+
+```bash
+sundew-http-server \
+  --network /usr/share/hailo-models/yolov6n_h8.hef \
+  --host 0.0.0.0 \
+  --port 8080
+
+curl -X POST http://127.0.0.1:8080/detect
 ```
 
 ### Configuration options
@@ -72,6 +87,22 @@ Print CV detections from 10 frames directly to stdout (no IPC):
 ```bash
 cv-processor --network /path/to/model.hef --output-console --max-frames 10
 ```
+
+For object detection, use a HEF compiled with Hailo NMS post-processing, such
+as `yolov6n_h8.hef` on a Hailo-8 device. Each detected object is emitted with
+its COCO class, confidence, and normalized bounding box:
+
+```json
+{
+  "class_id": 0,
+  "label": "person",
+  "confidence": 0.91,
+  "bbox": {"x_min": 0.21, "y_min": 0.12, "x_max": 0.67, "y_max": 0.94}
+}
+```
+
+HEFs that expose raw detection-head tensors instead of Hailo NMS output are
+reported as unsupported and require model-specific post-processing.
 
 Use an IPC endpoint and a higher frame stride:
 
